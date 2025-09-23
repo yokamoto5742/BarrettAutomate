@@ -1,10 +1,12 @@
 import logging
+import re
 import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+
 from playwright.sync_api import Playwright, sync_playwright
 
 
@@ -37,22 +39,6 @@ class BarrettCalculator:
             df = pd.read_excel(self.excel_file_path)
             self.logger.info(f"患者データを読み込みました: {len(df)}件")
 
-            # 必要な列が存在するかチェック
-            required_columns = [
-                'Patient Name', 'A Constant', 'Axial Length',
-                'Measured K1', 'Measured K2', 'Optical ACD',
-                'Refraction', 'IOL Power'
-            ]
-
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                raise ValueError(f"必要な列が不足しています: {missing_columns}")
-
-            # Barrett列が存在しない場合は作成
-            if 'Barrett' not in df.columns:
-                df['Barrett'] = None
-                self.logger.info("Barrett列を作成しました")
-
             return df
 
         except Exception as e:
@@ -79,42 +65,68 @@ class BarrettCalculator:
     def input_patient_data(self, page, patient_row: pd.Series) -> bool:
         """患者データをウェブフォームに入力"""
         try:
-            # Patient Name入力
-            patient_name_input = page.locator('input[placeholder*="Patient Name"], input[name*="patient"]').first
-            if patient_name_input.is_visible():
-                patient_name_input.fill(str(patient_row['Patient Name']))
+            # ページが完全に読み込まれるまで待機
+            page.wait_for_load_state('networkidle')
+            time.sleep(2)
 
-            # A Constant入力
-            a_constant_input = page.locator('input[value="119.0"]').first
-            if a_constant_input.is_visible():
-                a_constant_input.fill(str(patient_row['A Constant']))
+            # Patient Name入力（より具体的なセレクタを使用）
+            try:
+                patient_name_selector = 'input[name*="patient"], input[id*="patient"], table input[type="text"]:first-of-type'
+                patient_name_inputs = page.locator(patient_name_selector).all()
+                if patient_name_inputs:
+                    patient_name_inputs[0].clear()
+                    patient_name_inputs[0].fill(str(patient_row['Patient Name']))
+                    self.logger.info(f"Patient Name入力完了: {patient_row['Patient Name']}")
+            except Exception as e:
+                self.logger.warning(f"Patient Name入力スキップ: {e}")
 
-            # Axial Length (R)入力
-            axial_length_input = page.locator('input[value="23.04"]').first
-            if axial_length_input.is_visible():
-                axial_length_input.fill(str(patient_row['Axial Length']))
+            # A Constant入力（Lens Factorの右側の入力フィールド）
+            try:
+                # A Constant範囲（112～125）の入力フィールドを探す
+                a_constant_inputs = page.locator('input[type="text"]').all()
+                for input_field in a_constant_inputs:
+                    # フィールドの近くに"112~125"のテキストがあるかチェック
+                    parent_text = input_field.locator('..').text_content()
+                    if "112" in parent_text and "125" in parent_text:
+                        input_field.clear()
+                        input_field.fill(str(patient_row['A Constant']))
+                        self.logger.info(f"A Constant入力完了: {patient_row['A Constant']}")
+                        break
+            except Exception as e:
+                self.logger.warning(f"A Constant入力エラー: {e}")
 
-            # Measured K1 (R)入力
-            k1_input = page.locator('input[value="44.75"]').first
-            if k1_input.is_visible():
-                k1_input.fill(str(patient_row['Measured K1']))
+            # 右眼（OD）の測定値入力
+            od_inputs = page.locator('table tr').filter(has_text='OD').locator('input[type="text"]').all()
 
-            # Measured K2 (R)入力
-            k2_input = page.locator('input[value="44.25"]').first
-            if k2_input.is_visible():
-                k2_input.fill(str(patient_row['Measured K2']))
+            if len(od_inputs) >= 5:  # Axial Length, K1, K2, ACD, Refraction
+                try:
+                    # Axial Length (R)
+                    od_inputs[0].clear()
+                    od_inputs[0].fill(str(patient_row['Axial Length']))
 
-            # Optical ACD (R)入力
-            acd_input = page.locator('input[value="2.18"]').first
-            if acd_input.is_visible():
-                acd_input.fill(str(patient_row['Optical ACD']))
+                    # Measured K1 (R)
+                    od_inputs[1].clear()
+                    od_inputs[1].fill(str(patient_row['Measured K1']))
 
-            # Refraction (R)入力
-            refraction_input = page.locator('input[value="-0.03"]').first
-            if refraction_input.is_visible():
-                refraction_input.fill(str(patient_row['Refraction']))
+                    # Measured K2 (R)
+                    od_inputs[2].clear()
+                    od_inputs[2].fill(str(patient_row['Measured K2']))
 
-            self.logger.info(f"患者データを入力しました: {patient_row['Patient Name']}")
+                    # Optical ACD (R)
+                    od_inputs[3].clear()
+                    od_inputs[3].fill(str(patient_row['Optical ACD']))
+
+                    # Refraction (R)
+                    od_inputs[4].clear()
+                    od_inputs[4].fill(str(patient_row['Refraction']))
+
+                    self.logger.info(f"右眼データ入力完了: {patient_row['Patient Name']}")
+
+                except Exception as e:
+                    self.logger.error(f"右眼データ入力エラー: {e}")
+
+            # 少し待機してフォームが更新されるのを待つ
+            time.sleep(1)
             return True
 
         except Exception as e:
@@ -125,17 +137,24 @@ class BarrettCalculator:
         """計算実行とBarrett値の取得"""
         try:
             # Calculateボタンをクリック
-            calculate_btn = page.locator('input[value="Calculate"], button:has-text("Calculate")').first
+            calculate_btn = page.locator('input[value="Calculate"]').first
             if calculate_btn.is_visible():
                 calculate_btn.click()
-                page.wait_for_timeout(2000)  # 計算完了を待機
+                self.logger.info("Calculateボタンをクリックしました")
+                page.wait_for_timeout(3000)  # 計算完了を待機
+            else:
+                self.logger.error("Calculateボタンが見つかりません")
+                return None
 
-            # Universal Formulaボタンをクリック
-            universal_formula_btn = page.locator(
-                'a:has-text("Universal Formula"), button:has-text("Universal Formula")').first
+            # Universal Formulaタブをクリック
+            universal_formula_btn = page.locator('a:has-text("Universal Formula")').first
             if universal_formula_btn.is_visible():
                 universal_formula_btn.click()
+                self.logger.info("Universal Formulaタブをクリックしました")
                 page.wait_for_timeout(3000)  # ページ遷移を待機
+            else:
+                self.logger.error("Universal Formulaタブが見つかりません")
+                return None
 
             # 結果テーブルからIOL Powerに対応するRefractionを取得
             refraction_value = self._extract_refraction_from_table(page, target_iol_power)
@@ -155,26 +174,40 @@ class BarrettCalculator:
         """結果テーブルからIOL Powerに対応するRefractionを抽出"""
         try:
             # テーブルが表示されるまで待機
-            page.wait_for_selector('table, .table, [role="table"]', timeout=10000)
+            page.wait_for_timeout(2000)
 
-            # IOL PowerとRefractionの値を含むセルを探す
-            table_rows = page.locator('tr').all()
+            # IOL PowerとRefractionの値を含むテーブル行を探す
+            table_rows = page.locator('table tr').all()
 
             for row in table_rows:
-                cells = row.locator('td, th').all()
+                cells = row.locator('td').all()
                 if len(cells) >= 3:  # IOL Power, Optic, Refraction
                     try:
-                        # IOL Powerの値を取得
+                        # IOL Powerの値を取得（最初の列）
                         iol_power_text = cells[0].text_content().strip()
-                        iol_power = float(iol_power_text)
 
-                        # 目標のIOL Powerと一致するかチェック
-                        if abs(iol_power - target_iol_power) < 0.1:  # 0.1の誤差を許容
+                        # 数値のみを抽出
+                        iol_match = re.search(r'(\d+\.?\d*)', iol_power_text)
+                        if not iol_match:
+                            continue
+
+                        iol_power = float(iol_match.group(1))
+
+                        # 目標のIOL Powerと一致するかチェック（0.1の誤差を許容）
+                        if abs(iol_power - target_iol_power) < 0.1:
+                            # Refractionの値を取得（3番目の列）
                             refraction_text = cells[2].text_content().strip()
-                            refraction_value = float(refraction_text)
-                            return refraction_value
 
-                    except (ValueError, IndexError):
+                            # 負の値も含む数値を抽出
+                            refraction_match = re.search(r'(-?\d+\.?\d*)', refraction_text)
+                            if refraction_match:
+                                refraction_value = float(refraction_match.group(1))
+                                self.logger.info(
+                                    f"テーブルから抽出: IOL Power {iol_power} → Refraction {refraction_value}")
+                                return refraction_value
+
+                    except (ValueError, IndexError) as e:
+                        self.logger.debug(f"行解析スキップ: {e}")
                         continue
 
             # テーブルから直接値が見つからない場合、別の方法を試す
@@ -187,19 +220,38 @@ class BarrettCalculator:
     def _extract_refraction_alternative(self, page, target_iol_power: float) -> Optional[float]:
         """代替方法でRefractionを抽出"""
         try:
-            # ページ内のすべてのテキストから数値ペアを探す
+            # ページ内のすべてのテキストからIOL PowerとRefractionのペアを探す
             page_content = page.content()
 
-            # IOL PowerとRefractionのペアを正規表現で探す
-            import re
-            pattern = rf'{target_iol_power}\s*.*?(-?\d+\.?\d*)'
-            matches = re.findall(pattern, page_content)
+            # IOL PowerとRefractionの組み合わせをより柔軟に検索
+            patterns = [
+                rf'{target_iol_power}.*?(-?\d+\.?\d*)',
+                rf'>{target_iol_power}<.*?(-?\d+\.?\d*)',
+                rf'{target_iol_power}\s*</td>.*?(-?\d+\.?\d*)</td>'
+            ]
 
-            if matches:
-                try:
-                    return float(matches[0])
-                except ValueError:
-                    pass
+            for pattern in patterns:
+                matches = re.findall(pattern, page_content, re.DOTALL)
+                if matches:
+                    try:
+                        refraction_value = float(matches[0])
+                        self.logger.info(
+                            f"代替方法で抽出: IOL Power {target_iol_power} → Refraction {refraction_value}")
+                        return refraction_value
+                    except ValueError:
+                        continue
+
+            # ハイライトされた行（青い背景）を特別に探す
+            highlighted_rows = page.locator('tr[style*="background"], tr.highlighted').all()
+            for row in highlighted_rows:
+                row_text = row.text_content()
+                if str(target_iol_power) in row_text:
+                    refraction_match = re.search(r'(-?\d+\.?\d*)\s*$', row_text.strip())
+                    if refraction_match:
+                        refraction_value = float(refraction_match.group(1))
+                        self.logger.info(
+                            f"ハイライト行から抽出: IOL Power {target_iol_power} → Refraction {refraction_value}")
+                        return refraction_value
 
             return None
 
@@ -214,8 +266,11 @@ class BarrettCalculator:
             df = self.load_patient_data()
 
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=self.headless)
-                context = browser.new_context()
+                browser = p.chromium.launch(headless=self.headless, slow_mo=500)  # slow_moで処理を少し遅くする
+                context = browser.new_context(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                )
                 page = context.new_page()
 
                 successful_count = 0
@@ -228,6 +283,7 @@ class BarrettCalculator:
                         # ウェブサイトを開く
                         page.goto(self.url)
                         page.wait_for_load_state('networkidle')
+                        time.sleep(2)  # 追加待機
 
                         # データ入力
                         if self.input_patient_data(page, row):
@@ -246,7 +302,7 @@ class BarrettCalculator:
                             error_count += 1
 
                         # 次の処理前に少し待機
-                        time.sleep(1)
+                        time.sleep(2)
 
                     except Exception as e:
                         df.loc[index, 'Barrett'] = f"エラー: {str(e)[:50]}"
