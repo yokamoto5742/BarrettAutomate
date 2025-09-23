@@ -3,11 +3,10 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import pandas as pd
-
-from playwright.sync_api import Playwright, sync_playwright
+from playwright.sync_api import sync_playwright
 
 
 class BarrettCalculator:
@@ -63,20 +62,23 @@ class BarrettCalculator:
             raise
 
     def input_patient_data(self, page, patient_row: pd.Series) -> bool:
-        """患者データをウェブフォームに入力"""
+        """患者データをWebフォームに入力"""
         try:
             # ページが完全に読み込まれるまで待機
             page.wait_for_load_state('networkidle')
             time.sleep(2)
 
-            # Patient Name入力（より具体的なセレクタを使用）
+            # Patient Name入力（修正：2番目のテキスト入力フィールドを取得）
             try:
-                patient_name_selector = 'input[name*="patient"], input[id*="patient"], table input[type="text"]:first-of-type'
-                patient_name_inputs = page.locator(patient_name_selector).all()
-                if patient_name_inputs:
-                    patient_name_inputs[0].clear()
-                    patient_name_inputs[0].fill(str(patient_row['Patient Name']))
+                # 全てのテキスト入力フィールドを取得し、Patient Name用の2番目を選択
+                all_text_inputs = page.locator('input[type="text"]').all()
+                if len(all_text_inputs) >= 2:
+                    patient_name_input = all_text_inputs[1]  # 2番目のフィールド（0から始まるため1）
+                    patient_name_input.clear()
+                    patient_name_input.fill(str(patient_row['Patient Name']))
                     self.logger.info(f"Patient Name入力完了: {patient_row['Patient Name']}")
+                else:
+                    self.logger.warning("Patient Name用のフィールドが見つかりません")
             except Exception as e:
                 self.logger.warning(f"Patient Name入力スキップ: {e}")
 
@@ -280,7 +282,7 @@ class BarrettCalculator:
                     try:
                         self.logger.info(f"処理中: {row['Patient Name']} ({index + 1}/{len(df)})")
 
-                        # ウェブサイトを開く
+                        # Webサイトを開く
                         page.goto(self.url)
                         page.wait_for_load_state('networkidle')
                         time.sleep(2)  # 追加待機
