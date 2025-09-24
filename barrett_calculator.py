@@ -290,21 +290,21 @@ class BarrettCalculator:
                             barrett_value = self.calculate_and_get_result(page, iol_power)
 
                             if barrett_value is not None:
-                                df.loc[index, 'Barrett'] = barrett_value
+                                df.loc[index, 'Refraction'] = barrett_value
                                 successful_count += 1
                                 self.logger.info(f"成功: {patient_name} → Barrett: {barrett_value}")
                             else:
-                                df.loc[index, 'Barrett'] = "計算エラー"
+                                df.loc[index, 'Refraction'] = "計算エラー"
                                 error_count += 1
                         else:
-                            df.loc[index, 'Barrett'] = "入力エラー"
+                            df.loc[index, 'Refraction'] = "入力エラー"
                             error_count += 1
 
                         # 次の処理前に少し待機
                         time.sleep(2)
 
                     except Exception as e:
-                        df.loc[index, 'Barrett'] = f"エラー: {str(e)[:50]}"
+                        df.loc[index, 'Refraction'] = f"エラー: {str(e)[:50]}"
                         error_count += 1
                         self.logger.error(f"患者処理エラー ({patient_name}): {e}")
 
