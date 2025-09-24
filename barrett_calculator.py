@@ -85,13 +85,13 @@ class BarrettCalculator:
                 str(patient_row.get('AConstant', '')),  # A Constant (例: 119.0)
             ]
 
-            # 右眼（OD）のデータ
+            # 右眼データのみを入力（左眼の位置はスキップ）
             od_values = [
                 str(patient_row.get('AxialLength_R', '')),  # Axial Length (R)
-                str(patient_row.get('MeasuredK1_R', '')),  # Measured K1 (R)
-                str(patient_row.get('MeasuredK2_R', '')),  # Measured K2 (R)
-                str(patient_row.get('OpticalACD_R', '')),  # Optical ACD (R)
-                str(patient_row.get('Refraction_R', '')),  # Refraction (R)
+                str(patient_row.get('MeasuredK1_R', '')),   # Measured K1 (R)
+                str(patient_row.get('MeasuredK2_R', '')),   # Measured K2 (R)
+                str(patient_row.get('OpticalACD_R', '')),   # Optical ACD (R)
+                str(patient_row.get('Refraction_R', '')),   # Refraction (R)
             ]
 
             # 基本情報を入力
@@ -105,19 +105,19 @@ class BarrettCalculator:
                     except Exception as e:
                         self.logger.warning(f"フィールド{i}への入力エラー: {e}")
 
-            od_start_index = len(input_values)
+            # 基本情報の次から右眼データを入力（左眼位置はスキップ）
+            measurement_start_index = len(input_values)
 
-            # 右眼データを入力
+            # 右眼データを適切な位置に入力（偶数インデックス = 右眼、奇数インデックス = 左眼をスキップ）
             for i, value in enumerate(od_values):
-                field_index = od_start_index + i
+                # 右眼のフィールド位置：measurement_start_index + i*2（左眼をスキップするため2つ飛ばし）
+                field_index = measurement_start_index + (i * 2)
                 if field_index < len(all_text_inputs) and value:
                     try:
                         all_text_inputs[field_index].clear()
                         all_text_inputs[field_index].fill(value)
-                        od_field_names = ['AxialLength_R', 'MeasuredK1_R', 'MeasuredK2_R', 'OpticalACD_R',
-                                          'Refraction_R']
-                        self.logger.info(
-                            f"{od_field_names[i] if i < len(od_field_names) else f'ODField{i}'}: {value}を入力")
+                        od_field_names = ['AxialLength_R', 'MeasuredK1_R', 'MeasuredK2_R', 'OpticalACD_R', 'Refraction_R']
+                        self.logger.info(f"{od_field_names[i] if i < len(od_field_names) else f'ODField{i}'}: {value}を入力")
                     except Exception as e:
                         self.logger.warning(f"右眼フィールド{i}への入力エラー: {e}")
 
