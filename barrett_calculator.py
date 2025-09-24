@@ -54,7 +54,7 @@ class BarrettCalculator:
             if self.results_file_path.exists():
                 backup_path = self.results_file_path.with_suffix('_backup.xlsx')
                 self.results_file_path.rename(backup_path)
-                self.logger.info(f"既存結果ファイルのバックアップを作成: {backup_path}")
+                self.logger.info(f"前回結果ファイルのバックアップを作成: {backup_path}")
 
             # 更新されたデータを結果ファイルに保存
             df.to_excel(self.results_file_path, index=False)
@@ -65,7 +65,7 @@ class BarrettCalculator:
             raise
 
     def input_patient_data(self, page, patient_row: pd.Series) -> bool:
-        """患者データをWebフォームに入力（全フィールドを順番に入力）"""
+        """患者データをWebフォームに入力"""
         try:
             # ページが完全に読み込まれるまで待機
             page.wait_for_load_state('networkidle')
@@ -76,7 +76,6 @@ class BarrettCalculator:
             self.logger.info(f"検出されたテキスト入力フィールド数: {len(all_text_inputs)}")
 
             # 入力するデータを順番に準備
-            # フォームのフィールド順序に合わせて調整が必要な場合があります
             input_values = [
                 str(patient_row.get('DoctorName', '')),  # Doctor Name
                 str(patient_row.get('PatientName', '')),  # Patient Name
@@ -108,7 +107,7 @@ class BarrettCalculator:
             # 基本情報の次から右眼データを入力（左眼位置はスキップ）
             measurement_start_index = len(input_values)
 
-            # 右眼データを適切な位置に入力（偶数インデックス = 右眼、奇数インデックス = 左眼をスキップ）
+            # 右眼データを適切な位置に入力
             for i, value in enumerate(od_values):
                 # 右眼のフィールド位置：measurement_start_index + i*2（左眼をスキップするため2つ飛ばし）
                 field_index = measurement_start_index + (i * 2)
@@ -207,7 +206,6 @@ class BarrettCalculator:
                         self.logger.debug(f"行解析スキップ: {e}")
                         continue
 
-            # テーブルから直接値が見つからない場合、別の方法を試す
             return self._extract_refraction_alternative(page, target_iol_power)
 
         except Exception as e:
@@ -328,9 +326,8 @@ class BarrettCalculator:
 
 def main():
     """メイン実行関数"""
-    # 設定
     excel_file = "APACdata.xlsx"  # Excelファイルのパス
-    headless = False  # ブラウザを表示する場合はFalse、非表示の場合はTrue
+    headless = False
 
     try:
         calculator = BarrettCalculator(excel_file, headless=headless)
