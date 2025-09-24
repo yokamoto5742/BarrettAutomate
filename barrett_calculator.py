@@ -38,6 +38,9 @@ class BarrettCalculator:
             df = pd.read_excel(self.excel_file_path)
             self.logger.info(f"患者データを読み込みました: {len(df)}件")
 
+            # 列名の確認とログ出力
+            self.logger.info(f"データ列: {df.columns.tolist()}")
+
             return df
 
         except Exception as e:
@@ -62,77 +65,69 @@ class BarrettCalculator:
             raise
 
     def input_patient_data(self, page, patient_row: pd.Series) -> bool:
-        """患者データをWebフォームに入力"""
+        """患者データをWebフォームに入力（全フィールドを順番に入力）"""
         try:
             # ページが完全に読み込まれるまで待機
             page.wait_for_load_state('networkidle')
             time.sleep(2)
 
-            # Patient Name入力（修正：2番目のテキスト入力フィールドを取得）
-            try:
-                # 全てのテキスト入力フィールドを取得し、Patient Name用の2番目を選択
-                all_text_inputs = page.locator('input[type="text"]').all()
-                if len(all_text_inputs) >= 2:
-                    patient_name_input = all_text_inputs[1]  # 2番目のフィールド（0から始まるため1）
-                    patient_name_input.clear()
-                    patient_name_input.fill(str(patient_row['Patient Name']))
-                    self.logger.info(f"Patient Name入力完了: {patient_row['Patient Name']}")
-                else:
-                    self.logger.warning("Patient Name用のフィールドが見つかりません")
-            except Exception as e:
-                self.logger.warning(f"Patient Name入力スキップ: {e}")
+            # 全てのテキスト入力フィールドを取得
+            all_text_inputs = page.locator('input[type="text"]').all()
+            self.logger.info(f"検出されたテキスト入力フィールド数: {len(all_text_inputs)}")
 
-            # A Constant入力（Lens Factorの右側の入力フィールド）
-            try:
-                # A Constant範囲（112～125）の入力フィールドを探す
-                a_constant_inputs = page.locator('input[type="text"]').all()
-                for input_field in a_constant_inputs:
-                    # フィールドの近くに"112~125"のテキストがあるかチェック
-                    parent_text = input_field.locator('..').text_content()
-                    if "112" in parent_text and "125" in parent_text:
-                        input_field.clear()
-                        input_field.fill(str(patient_row['A Constant']))
-                        self.logger.info(f"A Constant入力完了: {patient_row['A Constant']}")
-                        break
-            except Exception as e:
-                self.logger.warning(f"A Constant入力エラー: {e}")
+            # 入力するデータを順番に準備
+            # フォームのフィールド順序に合わせて調整が必要な場合があります
+            input_values = [
+                str(patient_row.get('DoctorName', '')),  # Doctor Name
+                str(patient_row.get('PatientName', '')),  # Patient Name
+                str(patient_row.get('PatientID', '')),  # Patient ID
+                str(patient_row.get('LensFactor', '')),  # Lens Factor (例: 1.83)
+                str(patient_row.get('AConstant', '')),  # A Constant (例: 119.0)
+            ]
 
-            # 右眼（OD）の測定値入力
-            od_inputs = page.locator('table tr').filter(has_text='OD').locator('input[type="text"]').all()
+            # 右眼（OD）のデータ
+            od_values = [
+                str(patient_row.get('AxialLength_R', '')),  # Axial Length (R)
+                str(patient_row.get('MeasuredK1_R', '')),  # Measured K1 (R)
+                str(patient_row.get('MeasuredK2_R', '')),  # Measured K2 (R)
+                str(patient_row.get('OpticalACD_R', '')),  # Optical ACD (R)
+                str(patient_row.get('Refraction_R', '')),  # Refraction (R)
+            ]
 
-            if len(od_inputs) >= 5:  # Axial Length, K1, K2, ACD, Refraction
-                try:
-                    # Axial Length (R)
-                    od_inputs[0].clear()
-                    od_inputs[0].fill(str(patient_row['Axial Length']))
+            # 基本情報を入力
+            for i, value in enumerate(input_values):
+                if i < len(all_text_inputs) and value:
+                    try:
+                        all_text_inputs[i].clear()
+                        all_text_inputs[i].fill(value)
+                        field_names = ['DoctorName', 'PatientName', 'PatientID', 'LensFactor', 'AConstant']
+                        self.logger.info(f"{field_names[i] if i < len(field_names) else f'Field{i}'}: {value}を入力")
+                    except Exception as e:
+                        self.logger.warning(f"フィールド{i}への入力エラー: {e}")
 
-                    # Measured K1 (R)
-                    od_inputs[1].clear()
-                    od_inputs[1].fill(str(patient_row['Measured K1']))
+            od_start_index = len(input_values)
 
-                    # Measured K2 (R)
-                    od_inputs[2].clear()
-                    od_inputs[2].fill(str(patient_row['Measured K2']))
+            # 右眼データを入力
+            for i, value in enumerate(od_values):
+                field_index = od_start_index + i
+                if field_index < len(all_text_inputs) and value:
+                    try:
+                        all_text_inputs[field_index].clear()
+                        all_text_inputs[field_index].fill(value)
+                        od_field_names = ['AxialLength_R', 'MeasuredK1_R', 'MeasuredK2_R', 'OpticalACD_R',
+                                          'Refraction_R']
+                        self.logger.info(
+                            f"{od_field_names[i] if i < len(od_field_names) else f'ODField{i}'}: {value}を入力")
+                    except Exception as e:
+                        self.logger.warning(f"右眼フィールド{i}への入力エラー: {e}")
 
-                    # Optical ACD (R)
-                    od_inputs[3].clear()
-                    od_inputs[3].fill(str(patient_row['Optical ACD']))
-
-                    # Refraction (R)
-                    od_inputs[4].clear()
-                    od_inputs[4].fill(str(patient_row['Refraction']))
-
-                    self.logger.info(f"右眼データ入力完了: {patient_row['Patient Name']}")
-
-                except Exception as e:
-                    self.logger.error(f"右眼データ入力エラー: {e}")
-
-            # 少し待機してフォームが更新されるのを待つ
+            # 入力後少し待機
             time.sleep(1)
+            self.logger.info(f"全データ入力完了: {patient_row['PatientName']}")
             return True
 
         except Exception as e:
-            self.logger.error(f"データ入力エラー ({patient_row['Patient Name']}): {e}")
+            self.logger.error(f"データ入力エラー ({patient_row.get('PatientName', 'Unknown')}): {e}")
             return False
 
     def calculate_and_get_result(self, page, target_iol_power: float) -> Optional[float]:
@@ -280,7 +275,8 @@ class BarrettCalculator:
 
                 for index, row in df.iterrows():
                     try:
-                        self.logger.info(f"処理中: {row['Patient Name']} ({index + 1}/{len(df)})")
+                        patient_name = row.get('PatientName', f'Patient_{index}')
+                        self.logger.info(f"処理中: {patient_name} ({index + 1}/{len(df)})")
 
                         # Webサイトを開く
                         page.goto(self.url)
@@ -290,12 +286,13 @@ class BarrettCalculator:
                         # データ入力
                         if self.input_patient_data(page, row):
                             # 計算とBarrett値取得
-                            barrett_value = self.calculate_and_get_result(page, float(row['IOL Power']))
+                            iol_power = float(row.get('IOLPower', 0))
+                            barrett_value = self.calculate_and_get_result(page, iol_power)
 
                             if barrett_value is not None:
                                 df.loc[index, 'Barrett'] = barrett_value
                                 successful_count += 1
-                                self.logger.info(f"成功: {row['Patient Name']} → Barrett: {barrett_value}")
+                                self.logger.info(f"成功: {patient_name} → Barrett: {barrett_value}")
                             else:
                                 df.loc[index, 'Barrett'] = "計算エラー"
                                 error_count += 1
@@ -309,7 +306,7 @@ class BarrettCalculator:
                     except Exception as e:
                         df.loc[index, 'Barrett'] = f"エラー: {str(e)[:50]}"
                         error_count += 1
-                        self.logger.error(f"患者処理エラー ({row['Patient Name']}): {e}")
+                        self.logger.error(f"患者処理エラー ({patient_name}): {e}")
 
                 browser.close()
 
