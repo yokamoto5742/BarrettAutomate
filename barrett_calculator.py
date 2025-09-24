@@ -69,7 +69,7 @@ class BarrettCalculator:
         try:
             # ページが完全に読み込まれるまで待機
             page.wait_for_load_state('networkidle')
-            time.sleep(2)
+            time.sleep(1)
 
             # 全てのテキスト入力フィールドを取得
             all_text_inputs = page.locator('input[type="text"]').all()
@@ -170,7 +170,7 @@ class BarrettCalculator:
         """結果テーブルからIOL Powerに対応するRefractionを抽出"""
         try:
             # テーブルが表示されるまで待機
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(1000)
 
             # IOL PowerとRefractionの値を含むテーブル行を探す
             table_rows = page.locator('table tr').all()
@@ -279,7 +279,7 @@ class BarrettCalculator:
                         # Webサイトを開く
                         page.goto(self.url)
                         page.wait_for_load_state('networkidle')
-                        time.sleep(2)  # 追加待機
+                        time.sleep(1)  # 追加待機
 
                         # データ入力
                         if self.input_patient_data(page, row):
@@ -299,7 +299,7 @@ class BarrettCalculator:
                             error_count += 1
 
                         # 次の処理前に少し待機
-                        time.sleep(2)
+                        time.sleep(1)
 
                     except Exception as e:
                         df.loc[index, 'Refraction'] = f"エラー: {str(e)[:50]}"
