@@ -52,7 +52,7 @@ class BarrettCalculator:
         try:
             # 結果ファイルが既に存在する場合はバックアップを作成
             if self.results_file_path.exists():
-                backup_path = self.results_file_path.with_suffix('.backup.xlsx')
+                backup_path = self.results_file_path.with_suffix('_backup.xlsx')
                 self.results_file_path.rename(backup_path)
                 self.logger.info(f"既存結果ファイルのバックアップを作成: {backup_path}")
 
