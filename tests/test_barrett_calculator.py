@@ -1,8 +1,7 @@
-import logging
 import re
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
@@ -86,7 +85,7 @@ class TestBarrettCalculator:
 
     def test_init_with_custom_headless(self, temp_excel_file):
         """Test BarrettCalculator initialization with custom headless setting"""
-        calculator = BarrettCalculator(temp_excel_file, headless=False)
+        calculator = BarrettCalculator(temp_excel_file)
         assert calculator.headless is False
 
     def test_load_patient_data_success(self, calculator, sample_excel_data):
