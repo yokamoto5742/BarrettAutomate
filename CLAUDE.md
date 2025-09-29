@@ -93,6 +93,31 @@ python barrett_calculator.py
 - Robust file path handling with pathlib
 - UTF-8 encoding for international characters
 
+## Testing
+
+### Test Suite
+- **Location**: `tests/` directory with comprehensive pytest test suite
+- **Coverage**: 90% code coverage of main application logic
+- **Test Count**: 43 test cases covering all major functionality
+
+### Running Tests
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage report
+python -m pytest tests/ --cov=barrett_calculator --cov-report=term-missing
+
+# Run specific test class
+python -m pytest tests/test_barrett_calculator.py::TestBarrettCalculator -v
+```
+
+### Test Categories
+- **Core Methods**: load_patient_data(), save_patient_data(), input_patient_data(), calculate_and_get_result()
+- **Error Handling**: File not found, network failures, invalid data formats
+- **Edge Cases**: Empty files, NaN values, negative refraction values
+- **Integration**: End-to-end workflow testing with mocked web automation
+
 ## Common Tasks
 
 ### Debugging Web Automation
@@ -110,3 +135,11 @@ Excel input must contain columns:
 - Failed calculations marked as "計算エラー" in output
 - Input errors marked as "入力エラー"
 - Partial results saved even if some patients fail
+
+## Recent Updates
+
+### 2025-09-29: Test Suite Implementation
+- **Added**: Comprehensive pytest test suite with 43 test cases
+- **Fixed**: Backup file naming bug in BarrettCalculator class
+- **Improved**: 90% code coverage with robust error handling tests
+- **Created**: Test documentation and configuration files (pytest.ini, conftest.py)
