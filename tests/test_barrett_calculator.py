@@ -11,7 +11,7 @@ from barrett_calculator import BarrettCalculator
 
 
 class TestBarrettCalculator:
-    """Test suite for BarrettCalculator class"""
+    """BarrettCalculatorクラスのテストスイート"""
 
     @pytest.fixture
     def sample_excel_data(self):
