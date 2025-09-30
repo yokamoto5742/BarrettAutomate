@@ -80,6 +80,7 @@ python barrett_calculator.py
 - **pandas**: Excel file processing
 - **playwright**: Web browser automation
 - **openpyxl**: Excel file reading/writing
+- **pywin32**: Windows API for popup notifications
 - **uv**: Fast Python package installer
 
 ### Web Automation Strategy
@@ -137,6 +138,12 @@ Excel input must contain columns:
 - Partial results saved even if some patients fail
 
 ## Recent Updates
+
+### 2025-09-30: Popup Notification Feature
+- **Added**: Windows popup notification on process completion using pywin32
+- **Enhanced**: Process completion feedback with summary (success/error counts)
+- **Updated**: Dependencies to include pywin32==311 for Windows MessageBox API
+- **Improved**: User experience with visual completion notification
 
 ### 2025-09-29: Test Suite Implementation
 - **Added**: Comprehensive pytest test suite with 43 test cases
