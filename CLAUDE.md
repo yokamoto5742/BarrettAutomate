@@ -65,13 +65,13 @@ playwright install
 python barrett_calculator.py
 
 # The script processes APACdata.xlsx by default
-# Results saved to APACdata_results.xlsx
+# Results saved to APACdata_results_YYYYMMDDHHMMSS.xlsx
 ```
 
 ### Development Workflow
 - Input data: Place patient data in `APACdata.xlsx`
 - Main script: `barrett_calculator.py`
-- Output: Results written to `APACdata_results.xlsx`
+- Output: Results written to `APACdata_results_YYYYMMDDHHMMSS.xlsx` (timestamp-based filename)
 - Logs: Written to `barrett_calculator.log`
 
 ## Key Technical Details
@@ -90,7 +90,8 @@ python barrett_calculator.py
 - Extracts results from multiple table formats
 
 ### File Management
-- Automatic backup creation for existing results
+- Timestamp-based unique output filenames (YYYYMMDDHHMMSS format)
+- No file overwriting - each run creates a new timestamped file
 - Robust file path handling with pathlib
 - UTF-8 encoding for international characters
 
@@ -99,7 +100,7 @@ python barrett_calculator.py
 ### Test Suite
 - **Location**: `tests/` directory with comprehensive pytest test suite
 - **Coverage**: 90% code coverage of main application logic
-- **Test Count**: 43 test cases covering all major functionality
+- **Test Count**: 42 test cases covering all major functionality
 
 ### Running Tests
 ```bash
@@ -139,6 +140,13 @@ Excel input must contain columns:
 
 ## Recent Updates
 
+### 2025-09-30: Timestamp-Based Output Files
+- **Changed**: Output filenames now use timestamp format `APACdata_results_YYYYMMDDHHMMSS.xlsx`
+- **Removed**: Backup file functionality - each run creates a unique timestamped file
+- **Updated**: `BarrettCalculator` class to use `file_path` attribute instead of `results_file_path`
+- **Fixed**: Test suite updated to match new filename format (42 tests passing)
+- **Improved**: No file overwriting - all results are preserved with unique timestamps
+
 ### 2025-09-30: Popup Notification Feature
 - **Added**: Windows popup notification on process completion using pywin32
 - **Enhanced**: Process completion feedback with summary (success/error counts)
@@ -146,7 +154,7 @@ Excel input must contain columns:
 - **Improved**: User experience with visual completion notification
 
 ### 2025-09-29: Test Suite Implementation
-- **Added**: Comprehensive pytest test suite with 43 test cases
+- **Added**: Comprehensive pytest test suite with 42 test cases
 - **Fixed**: Backup file naming bug in BarrettCalculator class
 - **Improved**: 90% code coverage with robust error handling tests
 - **Created**: Test documentation and configuration files (pytest.ini, conftest.py)
