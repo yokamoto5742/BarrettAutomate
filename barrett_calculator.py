@@ -327,7 +327,7 @@ class BarrettCalculator:
 def main():
     """メイン実行関数"""
     excel_file = "APACdata.xlsx"  # Excelファイルのパス
-    headless = False
+    headless = True
 
     try:
         calculator = BarrettCalculator(excel_file, headless=headless)
