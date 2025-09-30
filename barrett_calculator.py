@@ -2,6 +2,7 @@ import logging
 import re
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -16,7 +17,7 @@ class BarrettCalculator:
 
     def __init__(self, excel_file_path: str, headless: bool = False):
         self.excel_file_path = Path(excel_file_path)
-        self.results_file_path = Path(excel_file_path).with_name('APACdata_results.xlsx')
+        self.file_path = Path(excel_file_path)
         self.headless = headless
         self.url = "https://calc.apacrs.org/barrett_universal2105/"
 
@@ -52,18 +53,16 @@ class BarrettCalculator:
     def save_patient_data(self, df: pd.DataFrame) -> None:
         """更新された患者データを結果ファイルに保存"""
         try:
-            # 結果ファイルが既に存在する場合はバックアップを作成
-            if self.results_file_path.exists():
-                backup_path = self.results_file_path.with_name(f"{self.results_file_path.stem}_backup{self.results_file_path.suffix}")
-                self.results_file_path.rename(backup_path)
-                self.logger.info(f"前回結果ファイルのバックアップを作成: {backup_path}")
+            # タイムスタンプ付きの出力ファイル名を生成
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            output_path = self.file_path.parent / f"{self.file_path.stem}_results_{timestamp}{self.file_path.suffix}"
 
-            # 更新されたデータを結果ファイルに保存
-            df.to_excel(self.results_file_path, index=False)
-            self.logger.info(f"処理結果を保存しました: {self.results_file_path}")
+            # 患者データをExcelファイルに保存
+            df.to_excel(output_path, index=False, engine='openpyxl')
+            self.logger.info(f"患者データをExcelファイルに保存しました: {output_path}")
 
         except Exception as e:
-            self.logger.error(f"データ保存エラー: {e}")
+            self.logger.error(f"患者データの保存に失敗しました: {e}")
             raise
 
     def input_patient_data(self, page, patient_row: pd.Series) -> bool:
@@ -313,16 +312,20 @@ class BarrettCalculator:
             # 結果保存
             self.save_patient_data(df)
 
+            # 保存されたファイル名を取得
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            results_file_name = f"{self.file_path.stem}_results_{timestamp}{self.file_path.suffix}"
+
             # サマリー出力
             self.logger.info(f"処理完了 - 成功: {successful_count}, エラー: {error_count}")
             print(f"\n=== 処理結果 ===")
             print(f"成功: {successful_count}件")
             print(f"エラー: {error_count}件")
             print(f"元ファイル: {self.excel_file_path}")
-            print(f"結果ファイル: {self.results_file_path}")
+            print(f"結果ファイル: {results_file_name}")
 
             # 処理完了ポップアップメッセージ
-            message = f"Barrett Calculator 処理完了\n\n成功: {successful_count}件\nエラー: {error_count}件\n\n結果ファイル: {self.results_file_path.name}"
+            message = f"Barrett Calculator 処理完了\n\n成功: {successful_count}件\nエラー: {error_count}件\n\n結果ファイル: {results_file_name}"
             win32api.MessageBox(0, message, "処理完了", win32con.MB_OK | win32con.MB_ICONINFORMATION)
 
         except Exception as e:

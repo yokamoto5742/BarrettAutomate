@@ -78,7 +78,7 @@ class TestBarrettCalculator:
         calculator = BarrettCalculator(temp_excel_file, headless=True)
 
         assert calculator.excel_file_path == Path(temp_excel_file)
-        assert calculator.results_file_path.name == 'APACdata_results.xlsx'
+        assert calculator.file_path == Path(temp_excel_file)
         assert calculator.headless is True
         assert calculator.url == "https://calc.apacrs.org/barrett_universal2105/"
         assert calculator.logger is not None
@@ -118,43 +118,23 @@ class TestBarrettCalculator:
         assert "Read error" in str(exc_info.value)
 
     def test_save_patient_data_success(self, calculator, sample_excel_data, tmp_path):
-        """Test successful patient data saving"""
-        # Set a custom results path for testing
-        calculator.results_file_path = tmp_path / "test_results.xlsx"
+        """Test successful patient data saving with timestamp-based filename"""
+        # Set the file_path to tmp_path for testing
+        calculator.file_path = tmp_path / "test_data.xlsx"
 
         calculator.save_patient_data(sample_excel_data)
 
-        assert calculator.results_file_path.exists()
+        # Find the generated timestamp-based file
+        result_files = list(tmp_path.glob("test_data_results_*.xlsx"))
+        assert len(result_files) == 1
+
+        result_file = result_files[0]
+        assert result_file.exists()
 
         # Verify the saved data
-        saved_df = pd.read_excel(calculator.results_file_path)
+        saved_df = pd.read_excel(result_file)
         assert len(saved_df) == 2
         assert saved_df.iloc[0]['PatientName'] == 'Test Patient 1'
-
-    def test_save_patient_data_with_backup(self, calculator, sample_excel_data, tmp_path):
-        """Test saving with existing file creates backup"""
-        calculator.results_file_path = tmp_path / "test_results.xlsx"
-
-        # Create existing file
-        sample_excel_data.to_excel(calculator.results_file_path, index=False)
-
-        # Save new data
-        modified_data = sample_excel_data.copy()
-        modified_data.loc[0, 'PatientName'] = 'Modified Patient'
-
-        calculator.save_patient_data(modified_data)
-
-        # Check backup was created - fix the backup naming logic
-        backup_path = tmp_path / "test_results_backup.xlsx"
-        assert backup_path.exists()
-
-        # Verify original data in backup
-        backup_df = pd.read_excel(backup_path)
-        assert backup_df.iloc[0]['PatientName'] == 'Test Patient 1'
-
-        # Verify new data in main file
-        main_df = pd.read_excel(calculator.results_file_path)
-        assert main_df.iloc[0]['PatientName'] == 'Modified Patient'
 
     @patch('pandas.DataFrame.to_excel')
     def test_save_patient_data_write_error(self, mock_to_excel, calculator, sample_excel_data):
@@ -404,8 +384,9 @@ class TestBarrettCalculator:
 
         assert result is None
 
+    @patch('barrett_calculator.win32api.MessageBox')
     @patch('barrett_calculator.sync_playwright')
-    def test_process_all_patients_success(self, mock_playwright, calculator, sample_excel_data):
+    def test_process_all_patients_success(self, mock_playwright, mock_messagebox, calculator, sample_excel_data):
         """Test successful processing of all patients"""
         # Setup playwright mocks
         mock_browser = Mock()
@@ -425,13 +406,15 @@ class TestBarrettCalculator:
             calculator.process_all_patients()
 
             mock_save.assert_called_once()
+            mock_messagebox.assert_called_once()
             # Verify the dataframe was updated with results
             saved_df = mock_save.call_args[0][0]
             assert saved_df.loc[0, 'Refraction'] == 1.25
             assert saved_df.loc[1, 'Refraction'] == 1.25
 
+    @patch('barrett_calculator.win32api.MessageBox')
     @patch('barrett_calculator.sync_playwright')
-    def test_process_all_patients_input_error(self, mock_playwright, calculator, sample_excel_data):
+    def test_process_all_patients_input_error(self, mock_playwright, mock_messagebox, calculator, sample_excel_data):
         """Test processing with input error"""
         # Setup playwright mocks
         mock_browser = Mock()
@@ -450,11 +433,13 @@ class TestBarrettCalculator:
             calculator.process_all_patients()
 
             mock_save.assert_called_once()
+            mock_messagebox.assert_called_once()
             saved_df = mock_save.call_args[0][0]
             assert saved_df.loc[0, 'Refraction'] == "入力エラー"
 
+    @patch('barrett_calculator.win32api.MessageBox')
     @patch('barrett_calculator.sync_playwright')
-    def test_process_all_patients_calculation_error(self, mock_playwright, calculator, sample_excel_data):
+    def test_process_all_patients_calculation_error(self, mock_playwright, mock_messagebox, calculator, sample_excel_data):
         """Test processing with calculation error"""
         # Setup playwright mocks
         mock_browser = Mock()
@@ -474,11 +459,13 @@ class TestBarrettCalculator:
             calculator.process_all_patients()
 
             mock_save.assert_called_once()
+            mock_messagebox.assert_called_once()
             saved_df = mock_save.call_args[0][0]
             assert saved_df.loc[0, 'Refraction'] == "計算エラー"
 
+    @patch('barrett_calculator.win32api.MessageBox')
     @patch('barrett_calculator.sync_playwright')
-    def test_process_all_patients_exception(self, mock_playwright, calculator, sample_excel_data):
+    def test_process_all_patients_exception(self, mock_playwright, mock_messagebox, calculator, sample_excel_data):
         """Test processing with patient-level exception"""
         # Setup playwright mocks
         mock_browser = Mock()
@@ -497,6 +484,7 @@ class TestBarrettCalculator:
             calculator.process_all_patients()
 
             mock_save.assert_called_once()
+            mock_messagebox.assert_called_once()
             saved_df = mock_save.call_args[0][0]
             assert "エラー: Processing error" in saved_df.loc[0, 'Refraction']
 
