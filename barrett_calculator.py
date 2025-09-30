@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+import win32api
+import win32con
 from playwright.sync_api import sync_playwright
 
 
@@ -318,6 +320,10 @@ class BarrettCalculator:
             print(f"エラー: {error_count}件")
             print(f"元ファイル: {self.excel_file_path}")
             print(f"結果ファイル: {self.results_file_path}")
+
+            # 処理完了ポップアップメッセージ
+            message = f"Barrett Calculator 処理完了\n\n成功: {successful_count}件\nエラー: {error_count}件\n\n結果ファイル: {self.results_file_path.name}"
+            win32api.MessageBox(0, message, "処理完了", win32con.MB_OK | win32con.MB_ICONINFORMATION)
 
         except Exception as e:
             self.logger.error(f"一括処理エラー: {e}")
