@@ -1,0 +1,11 @@
+build/
+dist/
+logs/
+.idea/
+
+.env
+.coverage
+*.spec
+*.iml
+
+error_log.txt
