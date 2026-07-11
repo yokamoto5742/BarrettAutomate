@@ -10,6 +10,9 @@
         acd   : 前房深度 (mm, 角膜前面〜水晶体前面)  ※Haigis で使用
 使い方:
     python iol_power_calculator.py input.csv output.csv
+    python iol_power_calculator.py --predict AL R_MM ACD POWER
+        例: python iol_power_calculator.py --predict 23.5 7.7 3.2 +23.5
+        指定した IOL 度数を挿入した場合の術後予想屈折値(眼鏡面)を表示する。
 """
 
 import csv
@@ -19,12 +22,12 @@ import sys
 from pathlib import Path
 
 # ---- 定数(必ず OA-2000 の設定値に合わせて上書きすること)----
-PACD = 5.0            # Hoffer Q: personalized ACD(= レンズの pACD 定数)
-HAIGIS_A0 = 0.9       # Haigis: a0
-HAIGIS_A1 = 0.4       # Haigis: a1(既定 0.4)
-HAIGIS_A2 = 0.1       # Haigis: a2(既定 0.1)
-TARGET_SE = 0.0       # 目標屈折(眼鏡面, D)。正視なら 0.00
-VERTEX = 0.012        # 頂点間距離 (m)
+PACD = 5.0  # Hoffer Q: personalized ACD(= レンズの pACD 定数)
+HAIGIS_A0 = 0.9  # Haigis: a0
+HAIGIS_A1 = 0.4  # Haigis: a1(既定 0.4)
+HAIGIS_A2 = 0.1  # Haigis: a2(既定 0.1)
+TARGET_SE = 0.0  # 目標屈折(眼鏡面, D)。正視なら 0.00
+VERTEX = 0.012  # 頂点間距離 (m)
 
 
 # ---- Hoffer Q ----
@@ -50,8 +53,10 @@ def hofferq_se(al, r_mm, pacd, power):
     """IOL 度数 power を入れたときの予測等価球面度数(眼鏡面, D)を返す。"""
     k = 337.5 / r_mm  # Hoffer Q は角膜屈折率 1.3375 を使用
     acd = _hofferq_pred_acd(al, k, pacd)
-    rc = 1.336 / (1.336 / (1336.0 / (al - acd - 0.05) - power)
-                  + (acd + 0.05) / 1000.0) - k
+    rc = (
+        1.336 / (1.336 / (1336.0 / (al - acd - 0.05) - power) + (acd + 0.05) / 1000.0)
+        - k
+    )
     return rc / (1 + VERTEX * rc)  # 角膜面 -> 眼鏡面
 
 
@@ -59,7 +64,7 @@ def hofferq_se(al, r_mm, pacd, power):
 def haigis_se(al, r_mm, acd_meas, a0, a1, a2, power):
     """IOL 度数 power を入れたときの予測等価球面度数(眼鏡面, D)を返す。"""
     n, nc = 1.336, 1.3315  # Haigis は角膜屈折率 1.3315 を使用
-    d = a0 + a1 * acd_meas + a2 * al          # ELP (mm)
+    d = a0 + a1 * acd_meas + a2 * al  # ELP (mm)
     big_r = r_mm / 1000.0
     length = al / 1000.0
     dd = d / 1000.0
@@ -77,7 +82,7 @@ def solve_power(se_func, target_se=0.0, lo=-10.0, hi=60.0, tol=1e-5):
 
     for _ in range(200):
         mid = (lo + hi) / 2
-        if f(mid) > 0:          # SE は power に対し単調減少
+        if f(mid) > 0:  # SE は power に対し単調減少
             lo = mid
         else:
             hi = mid
@@ -93,22 +98,34 @@ def process(in_path, out_path):
             al = float(row["al"])
             r_mm = float(row["r_mm"])
             acd = float(row["acd"])
-            hq = solve_power(
-                lambda p: hofferq_se(al, r_mm, PACD, p), TARGET_SE)
+            hq = solve_power(lambda p: hofferq_se(al, r_mm, PACD, p), TARGET_SE)
             hg = solve_power(
-                lambda p: haigis_se(al, r_mm, acd, HAIGIS_A0,
-                                    HAIGIS_A1, HAIGIS_A2, p), TARGET_SE)
-            rows_out.append({
-                "patient_id": row["patient_id"],
-                "eye": row.get("eye", ""),
-                "al": al, "r_mm": r_mm, "acd": acd,
-                "target_se": TARGET_SE,
-                "iol_hofferq": hq,
-                "iol_haigis": hg,
-            })
+                lambda p: haigis_se(al, r_mm, acd, HAIGIS_A0, HAIGIS_A1, HAIGIS_A2, p),
+                TARGET_SE,
+            )
+            rows_out.append(
+                {
+                    "patient_id": row["patient_id"],
+                    "eye": row.get("eye", ""),
+                    "al": al,
+                    "r_mm": r_mm,
+                    "acd": acd,
+                    "target_se": TARGET_SE,
+                    "iol_hofferq": hq,
+                    "iol_haigis": hg,
+                }
+            )
 
-    fields = ["patient_id", "eye", "al", "r_mm", "acd",
-              "target_se", "iol_hofferq", "iol_haigis"]
+    fields = [
+        "patient_id",
+        "eye",
+        "al",
+        "r_mm",
+        "acd",
+        "target_se",
+        "iol_hofferq",
+        "iol_haigis",
+    ]
     with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -116,9 +133,25 @@ def process(in_path, out_path):
     return len(rows_out)
 
 
+def print_prediction(al: float, r_mm: float, acd: float, power: float) -> None:
+    """指定 IOL 度数に対する術後予想屈折値(眼鏡面)を両式で表示する。"""
+    hq = hofferq_se(al, r_mm, PACD, power)
+    hg = haigis_se(al, r_mm, acd, HAIGIS_A0, HAIGIS_A1, HAIGIS_A2, power)
+    print(f"AL={al}mm R={r_mm}mm (K={337.5 / r_mm:.2f}D) ACD={acd}mm IOL={power:+.2f}D")
+    print(f"  Hoffer Q 予想屈折値: {hq:+.2f} D")
+    print(f"  Haigis   予想屈折値: {hg:+.2f} D")
+
+
 def main():
+    if len(sys.argv) == 6 and sys.argv[1] == "--predict":
+        al, r_mm, acd, power = (float(v) for v in sys.argv[2:6])
+        print_prediction(al, r_mm, acd, power)
+        return
     if len(sys.argv) != 3:
-        print("usage: python iol_power_calculator.py input.csv output.csv")
+        print(
+            "usage: python iol_power_calculator.py input.csv output.csv\n"
+            "       python iol_power_calculator.py --predict AL R_MM ACD POWER"
+        )
         sys.exit(1)
     n = process(Path(sys.argv[1]), Path(sys.argv[2]))
     print(f"{n} 件を計算し {sys.argv[2]} に出力しました。")
