@@ -2,7 +2,7 @@
 
 IOLCalcdata.xlsx の各行を上から順に処理し、指定 IOL 度数(IOLPower 列)を
 挿入した場合の術後予想等価球面度数(眼鏡面, D)を Hoffer Q 式と Haigis 式で
-計算して HofferQ_SE / Haisis_SE 列に書き込み、タイムスタンプ付きの新しい
+計算して HofferQ_SE / Haigis_SE 列に書き込み、タイムスタンプ付きの新しい
 Excel ファイルに保存する(既存ファイルの上書きは行わない)。
 
 入力列:
@@ -97,7 +97,7 @@ def process_excel(excel_path: Path) -> tuple[Path, int]:
             power,
         )
         df.loc[index, "HofferQ_SE"] = round(hq, 2)
-        df.loc[index, "Haisis_SE"] = round(hg, 2)
+        df.loc[index, "Haigis_SE"] = round(hg, 2)
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     output_path = (
