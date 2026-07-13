@@ -59,8 +59,8 @@ class KaneCalculator:
     def input_patient_data(self, page: Page, patient_row: pd.Series) -> bool:
         """患者データをWebフォームに入力（右眼のみ）"""
         try:
-            page.get_by_role("textbox", name="Surgeon").fill(str(patient_row['Surgeon.1']))
-            page.get_by_role("textbox", name="Patient").fill(str(patient_row['Patient.1']))
+            page.get_by_role("textbox", name="Surgeon").fill(str(patient_row['Surgeon']))
+            page.get_by_role("textbox", name="Patient").fill(str(patient_row['Patient']))
             page.get_by_role("textbox", name="ID").fill(str(patient_row['ID']))
 
             # 性別はボタン型ラベル（gender_1=M, gender_2=F）を親要素クリックで選択
@@ -77,11 +77,11 @@ class KaneCalculator:
             page.locator('input[name="k2_right"]').fill(str(k2))
 
             page.locator("#acd-right").fill(str(patient_row['ACD_OD']))
-            self.logger.info(f"データ入力完了: {patient_row['Surgeon.1']}")
+            self.logger.info(f"データ入力完了: {patient_row['Surgeon']}")
             return True
 
         except Exception as e:
-            self.logger.error(f"データ入力エラー ({patient_row.get('Surgeon.1', 'Unknown')}): {e}")
+            self.logger.error(f"データ入力エラー ({patient_row.get('Surgeon', 'Unknown')}): {e}")
             return False
 
     def calculate_and_get_result(self, page: Page, target_iol_power: float) -> Optional[float]:
@@ -115,7 +115,7 @@ class KaneCalculator:
             self.logger.error(f"計算処理エラー: {e}")
             return None
 
-    def _wait_for_result_table(self, page: Page, timeout_seconds: int = 30) -> Optional[Locator]:
+    def _wait_for_result_table(self, page: Page, timeout_seconds: int = 10) -> Optional[Locator]:
         """結果テーブルの値が確定するまで待機（計算中は '00' が表示される）"""
         for _ in range(timeout_seconds):
             page.wait_for_timeout(1000)
@@ -132,7 +132,6 @@ class KaneCalculator:
         """全患者データを上から順番に一括処理"""
         df = self.load_patient_data()
 
-        # float64列に文字列（エラーメッセージ）を代入できるようobject型にする
         if 'Refraction' not in df.columns:
             df['Refraction'] = None
         df['Refraction'] = df['Refraction'].astype(object)
@@ -147,7 +146,7 @@ class KaneCalculator:
                 page = context.new_page()
 
                 for position, (index, row) in enumerate(df.iterrows(), start=1):
-                    surgeon = row.get('Surgeon.1', f'Row_{index}')
+                    surgeon = row.get('Surgeon', f'Row_{index}')
                     try:
                         self.logger.info(f"処理中: {surgeon} ({position}/{len(df)})")
                         self.open_input_form(page)
