@@ -7,5 +7,6 @@ logs/
 .coverage
 *.spec
 *.iml
+*.log
 
 error_log.txt
