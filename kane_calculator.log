@@ -1,0 +1,23 @@
+2026-07-13 11:01:43,201 - INFO - 患者データを読み込みました: 2件
+2026-07-13 11:01:43,202 - INFO - データ列: ['Surgeon', 'Patient', 'Surgeon.1', 'Patient.1', 'ID', 'Sex', 'AConstant', 'Target refraction', 'AL_OD', 'K1_OD', 'K2_OD', 'ACD_OD', 'IOLPower', 'Refraction']
+2026-07-13 11:01:44,150 - INFO - 処理中: attack01 (1/2)
+2026-07-13 11:01:54,123 - INFO - データ入力完了: attack01
+2026-07-13 11:01:54,730 - INFO - Calculateボタンをクリックしました
+2026-07-13 11:02:04,823 - INFO - 結果取得: IOL Power 21.5 → Refraction -0.77
+2026-07-13 11:02:04,825 - INFO - 成功: attack01 → Refraction: -0.77
+2026-07-13 11:02:05,826 - INFO - 処理中: attack02 (2/2)
+2026-07-13 11:02:13,111 - INFO - データ入力完了: attack02
+2026-07-13 11:02:13,703 - INFO - Calculateボタンをクリックしました
+2026-07-13 11:02:22,795 - INFO - 結果取得: IOL Power 22.0 → Refraction -0.46
+2026-07-13 11:02:22,796 - INFO - 成功: attack02 → Refraction: -0.46
+2026-07-13 11:02:23,879 - INFO - 患者データをExcelファイルに保存しました: C:\Users\yokam\AppData\Local\Temp\claude\C--Users-yokam-PycharmProjects-BarrettAutomate\e483a40d-c5d6-46c2-b63b-459c021b988d\scratchpad\Kanedata_test_results_20260713110223.xlsx
+2026-07-13 11:02:23,879 - INFO - 処理完了 - 成功: 2, エラー: 0
+2026-07-13 11:04:29,194 - INFO - 患者データを読み込みました: 1件
+2026-07-13 11:04:29,194 - INFO - データ列: ['Surgeon', 'Patient', 'Surgeon.1', 'Patient.1', 'ID', 'Sex', 'AConstant', 'Target refraction', 'AL_OD', 'K1_OD', 'K2_OD', 'ACD_OD', 'IOLPower', 'Refraction']
+2026-07-13 11:04:30,177 - INFO - 処理中: attack01 (1/1)
+2026-07-13 11:04:38,360 - INFO - データ入力完了: attack01
+2026-07-13 11:04:38,958 - INFO - Calculateボタンをクリックしました
+2026-07-13 11:04:48,044 - INFO - 結果取得: IOL Power 21.5 → Refraction -0.77
+2026-07-13 11:04:48,045 - INFO - 成功: attack01 → Refraction: -0.77
+2026-07-13 11:04:49,135 - INFO - 患者データをExcelファイルに保存しました: C:\Users\yokam\AppData\Local\Temp\claude\C--Users-yokam-PycharmProjects-BarrettAutomate\e483a40d-c5d6-46c2-b63b-459c021b988d\scratchpad\Kanedata_test2_results_20260713110449.xlsx
+2026-07-13 11:04:49,135 - INFO - 処理完了 - 成功: 1, エラー: 0
