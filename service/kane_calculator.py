@@ -132,54 +132,61 @@ class KaneCalculator:
         """全患者データを上から順番に一括処理"""
         df = self.load_patient_data()
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=self.headless, slow_mo=500)
-            context = browser.new_context(viewport={'width': 1920, 'height': 1080})
-            page = context.new_page()
+        # float64列に文字列（エラーメッセージ）を代入できるようobject型にする
+        if 'Refraction' not in df.columns:
+            df['Refraction'] = None
+        df['Refraction'] = df['Refraction'].astype(object)
 
-            successful_count = 0
-            error_count = 0
+        successful_count = 0
+        error_count = 0
 
-            for position, (index, row) in enumerate(df.iterrows(), start=1):
-                surgeon = row.get('Surgeon.1', f'Row_{index}')
-                try:
-                    self.logger.info(f"処理中: {surgeon} ({position}/{len(df)})")
-                    self.open_input_form(page)
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=self.headless, slow_mo=500)
+                context = browser.new_context(viewport={'width': 1920, 'height': 1080})
+                page = context.new_page()
 
-                    if self.input_patient_data(page, row):
-                        refraction = self.calculate_and_get_result(page, float(str(row['IOLPower'])))
-                        if refraction is not None:
-                            df.loc[index, 'Refraction'] = refraction
-                            successful_count += 1
-                            self.logger.info(f"成功: {surgeon} → Refraction: {refraction}")
+                for position, (index, row) in enumerate(df.iterrows(), start=1):
+                    surgeon = row.get('Surgeon.1', f'Row_{index}')
+                    try:
+                        self.logger.info(f"処理中: {surgeon} ({position}/{len(df)})")
+                        self.open_input_form(page)
+
+                        if self.input_patient_data(page, row):
+                            refraction = self.calculate_and_get_result(page, float(str(row['IOLPower'])))
+                            if refraction is not None:
+                                df.loc[index, 'Refraction'] = refraction
+                                successful_count += 1
+                                self.logger.info(f"成功: {surgeon} → Refraction: {refraction}")
+                            else:
+                                df.loc[index, 'Refraction'] = "計算エラー"
+                                error_count += 1
                         else:
-                            df.loc[index, 'Refraction'] = "計算エラー"
+                            df.loc[index, 'Refraction'] = "入力エラー"
                             error_count += 1
-                    else:
-                        df.loc[index, 'Refraction'] = "入力エラー"
+
+                        time.sleep(1)
+
+                    except Exception as e:
+                        df.loc[index, 'Refraction'] = f"エラー: {str(e)[:50]}"
                         error_count += 1
+                        self.logger.error(f"患者処理エラー ({surgeon}): {e}")
 
-                    time.sleep(1)
+                browser.close()
+        finally:
+            # 途中で予期しない例外が発生しても、それまでの計算結果は必ず保存する
+            output_path = self.save_patient_data(df)
 
-                except Exception as e:
-                    df.loc[index, 'Refraction'] = f"エラー: {str(e)[:50]}"
-                    error_count += 1
-                    self.logger.error(f"患者処理エラー ({surgeon}): {e}")
+            self.logger.info(f"処理完了 - 成功: {successful_count}, エラー: {error_count}")
+            print("\n=== 処理結果 ===")
+            print(f"成功: {successful_count}件")
+            print(f"エラー: {error_count}件")
+            print(f"元ファイル: {self.file_path}")
+            print(f"結果ファイル: {output_path.name}")
 
-            browser.close()
-
-        output_path = self.save_patient_data(df)
-
-        self.logger.info(f"処理完了 - 成功: {successful_count}, エラー: {error_count}")
-        print("\n=== 処理結果 ===")
-        print(f"成功: {successful_count}件")
-        print(f"エラー: {error_count}件")
-        print(f"元ファイル: {self.file_path}")
-        print(f"結果ファイル: {output_path.name}")
-
-        message = (f"Kane Calculator 処理完了\n\n成功: {successful_count}件\nエラー: {error_count}件"
-                   f"\n\n結果ファイル: {output_path.name}")
-        win32api.MessageBox(0, message, "処理完了", win32con.MB_OK | win32con.MB_ICONINFORMATION)
+            message = (f"Kane Calculator 処理完了\n\n成功: {successful_count}件\nエラー: {error_count}件"
+                       f"\n\n結果ファイル: {output_path.name}")
+            win32api.MessageBox(0, message, "処理完了", win32con.MB_OK | win32con.MB_ICONINFORMATION)
 
 
 def main():
