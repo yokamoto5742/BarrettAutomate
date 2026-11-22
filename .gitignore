@@ -2,6 +2,7 @@ build/
 dist/
 logs/
 .idea/
+data/
 
 .env
 .coverage
