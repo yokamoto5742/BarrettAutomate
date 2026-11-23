@@ -335,7 +335,7 @@ class BarrettCalculator:
 
 def main():
     """メイン実行関数"""
-    excel_file = "../APACdata.xlsx"  # Excelファイルのパス
+    excel_file = "../data/IOLCalcdata.xlsx"  # Excelファイルのパス
     headless = True
 
     try:

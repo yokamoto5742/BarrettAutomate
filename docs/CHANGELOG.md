@@ -7,5 +7,9 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-23
+### 変更
+- `service/barrett_calculator.py` の読み込みExcelファイルを `data/IOLCalcdata.xlsx` に変更
+
 ## [1.0.0] - 2026-07-10
 - 初版リリース

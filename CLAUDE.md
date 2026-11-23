@@ -25,7 +25,7 @@ Barrett Universal II Formula(眼科のIOL度数計算式)の計算を自動化�
 ## Gotchas
 
 - `service/barrett_calculator.py` は `win32api`/`win32con`(pywin32)を import しているが、`pyproject.toml` の依存関係には含まれていない。Windows環境の別途インストールが前提。
-- `service/barrett_calculator.py` の `main()` は Excelファイルパスが `"../APACdata.xlsx"` にハードコードされている。
+- `service/barrett_calculator.py` の `main()` は Excelファイルパスが `"../data/IOLCalcdata.xlsx"` にハードコードされている。
 
 ## Commands
 
