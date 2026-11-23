@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-23
+### 修正
+- `service/barrett_calculator.py` で IOL Power の読み込み列名を `IOLPower` から `IOL_power` に修正(列が見つからず IOL Power が 0.0 として扱われ、誤った Refraction を取得していた)
+
 ## [1.0.2] - 2026-11-23
 ### 修正
 - `service/barrett_calculator.py` の読み込みExcelファイルを `data/Barrettdata.xlsx`(旧 `APACdata.xlsx`)に修正

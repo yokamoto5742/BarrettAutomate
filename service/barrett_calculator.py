@@ -285,7 +285,7 @@ class BarrettCalculator:
                         # データ入力
                         if self.input_patient_data(page, row):
                             # 計算とBarrett値取得
-                            iol_power = float(row.get('IOLPower', 0))
+                            iol_power = float(row.get('IOL_power', 0))
                             barrett_value = self.calculate_and_get_result(page, iol_power)
 
                             if barrett_value is not None:
