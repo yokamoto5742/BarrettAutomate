@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-23
+### 削除
+- `service/barrett_calculator.py` の代替抽出処理 `_extract_refraction_alternative` を削除。結果テーブルに目標の IOL Power が見つからない場合は「計算エラー」として扱う(ページ内の無関係な数値を誤って取得するのを防ぐため)
+
 ## [1.0.3] - 2026-11-23
 ### 修正
 - `service/barrett_calculator.py` で IOL Power の読み込み列名を `IOLPower` から `IOL_power` に修正(列が見つからず IOL Power が 0.0 として扱われ、誤った Refraction を取得していた)

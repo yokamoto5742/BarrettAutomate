@@ -207,52 +207,10 @@ class BarrettCalculator:
                         self.logger.debug(f"行解析スキップ: {e}")
                         continue
 
-            return self._extract_refraction_alternative(page, target_iol_power)
+            return None
 
         except Exception as e:
             self.logger.error(f"テーブル解析エラー: {e}")
-            return None
-
-    def _extract_refraction_alternative(self, page, target_iol_power: float) -> Optional[float]:
-        """代替方法でRefractionを抽出"""
-        try:
-            # ページ内のすべてのテキストからIOL PowerとRefractionのペアを探す
-            page_content = page.content()
-
-            # IOL PowerとRefractionの組み合わせをより柔軟に検索
-            patterns = [
-                rf'{target_iol_power}.*?(-?\d+\.?\d*)',
-                rf'>{target_iol_power}<.*?(-?\d+\.?\d*)',
-                rf'{target_iol_power}\s*</td>.*?(-?\d+\.?\d*)</td>'
-            ]
-
-            for pattern in patterns:
-                matches = re.findall(pattern, page_content, re.DOTALL)
-                if matches:
-                    try:
-                        refraction_value = float(matches[0])
-                        self.logger.info(
-                            f"代替方法で抽出: IOL Power {target_iol_power} → Refraction {refraction_value}")
-                        return refraction_value
-                    except ValueError:
-                        continue
-
-            # ハイライトされた行（青い背景）を特別に探す
-            highlighted_rows = page.locator('tr[style*="background"], tr.highlighted').all()
-            for row in highlighted_rows:
-                row_text = row.text_content()
-                if str(target_iol_power) in row_text:
-                    refraction_match = re.search(r'(-?\d+\.?\d*)\s*$', row_text.strip())
-                    if refraction_match:
-                        refraction_value = float(refraction_match.group(1))
-                        self.logger.info(
-                            f"ハイライト行から抽出: IOL Power {target_iol_power} → Refraction {refraction_value}")
-                        return refraction_value
-
-            return None
-
-        except Exception as e:
-            self.logger.error(f"代替抽出エラー: {e}")
             return None
 
     def process_all_patients(self) -> None:

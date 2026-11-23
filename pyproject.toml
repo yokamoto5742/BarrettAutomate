@@ -1,6 +1,6 @@
 [project]
 name = "barrettautomate"
-version = "1.0.3"
+version = "1.0.4"
 requires-python = ">=3.13"
 dependencies = [
     "openpyxl>=3.1.5",
