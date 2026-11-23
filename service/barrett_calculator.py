@@ -220,6 +220,10 @@ class BarrettCalculator:
         try:
             # データ読み込み
             df = self.load_patient_data()
+            # 数値列のままだと"計算エラー"等の文字列を書き込めずTypeErrorになるためobject型にする
+            if 'Refraction' not in df.columns:
+                df['Refraction'] = None
+            df['Refraction'] = df['Refraction'].astype(object)
             output_path = self.build_output_path()
 
             with sync_playwright() as p:

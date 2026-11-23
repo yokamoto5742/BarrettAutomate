@@ -84,3 +84,14 @@ def test_processing_continues_when_save_fails(
     calculator.process_all_patients()
 
     assert calculate_mock.call_count == 3
+
+
+def test_processing_continues_when_calculation_fails_after_success(
+        calculator: BarrettCalculator, excel_path: Path, mocker: MockerFixture) -> None:
+    mocker.patch.object(calculator, "input_patient_data", return_value=True)
+    mocker.patch.object(calculator, "calculate_and_get_result", side_effect=[-0.1, None, -0.3])
+
+    calculator.process_all_patients()
+
+    saved = pd.read_excel(find_result_file(excel_path))
+    assert saved["Refraction"].tolist() == [-0.1, "計算エラー", -0.3]
