@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-23
+### 修正
+- `service/barrett_calculator.py` の読み込みExcelファイルを `data/Barrettdata.xlsx`(旧 `APACdata.xlsx`)に修正
+
 ## [1.0.1] - 2026-11-23
 ### 変更
 - `service/barrett_calculator.py` の読み込みExcelファイルを `data/IOLCalcdata.xlsx` に変更

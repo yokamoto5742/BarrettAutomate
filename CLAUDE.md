@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Barrett Universal II Formula(眼科のIOL度数計算式)の計算を自動化するツール。`service/barrett_calculator.py` の `BarrettCalculator` が Excel(`APACdata.xlsx` 等)から患者データを読み込み、Playwright で https://calc.apacrs.org/barrett_universal2105/ を操作して右眼データのみを入力・計算し、結果を新しい timestamped Excel ファイルに保存する(既存ファイルの上書き・バックアップは行わない)。Windows専用(`pywin32` で処理完了時にメッセージボックス通知)。
+Barrett Universal II Formula(眼科のIOL度数計算式)の計算を自動化するツール。`service/barrett_calculator.py` の `BarrettCalculator` が Excel(`data/Barrettdata.xlsx` 等)から患者データを読み込み、Playwright で https://calc.apacrs.org/barrett_universal2105/ を操作して右眼データのみを入力・計算し、結果を新しい timestamped Excel ファイルに保存する(既存ファイルの上書き・バックアップは行わない)。Windows専用(`pywin32` で処理完了時にメッセージボックス通知)。
 
 ## Structure
 
@@ -25,7 +25,7 @@ Barrett Universal II Formula(眼科のIOL度数計算式)の計算を自動化�
 ## Gotchas
 
 - `service/barrett_calculator.py` は `win32api`/`win32con`(pywin32)を import しているが、`pyproject.toml` の依存関係には含まれていない。Windows環境の別途インストールが前提。
-- `service/barrett_calculator.py` の `main()` は Excelファイルパスが `"../data/IOLCalcdata.xlsx"` にハードコードされている。
+- `service/barrett_calculator.py` の `main()` は Excelファイルパスが `"../data/Barrettdata.xlsx"` にハードコードされている。
 
 ## Commands
 
