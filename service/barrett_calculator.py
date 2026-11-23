@@ -50,20 +50,22 @@ class BarrettCalculator:
             self.logger.error(f"データ読み込みエラー: {e}")
             raise
 
-    def save_patient_data(self, df: pd.DataFrame) -> None:
-        """更新された患者データを結果ファイルに保存"""
-        try:
-            # タイムスタンプ付きの出力ファイル名を生成
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            output_path = self.file_path.parent / f"{self.file_path.stem}_results_{timestamp}{self.file_path.suffix}"
+    def build_output_path(self) -> Path:
+        """タイムスタンプ付きの結果ファイルパスを生成"""
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        return self.file_path.parent / f"{self.file_path.stem}_results_{timestamp}{self.file_path.suffix}"
 
-            # 患者データをExcelファイルに保存
+    def save_patient_data(self, df: pd.DataFrame, output_path: Path) -> bool:
+        """患者データを結果ファイルに保存。失敗しても処理を止めないよう例外は送出しない"""
+        try:
             df.to_excel(output_path, index=False, engine='openpyxl')
             self.logger.info(f"患者データをExcelファイルに保存しました: {output_path}")
+            return True
 
         except Exception as e:
+            # 結果ファイルをExcelで開いているとPermissionErrorになる
             self.logger.error(f"患者データの保存に失敗しました: {e}")
-            raise
+            return False
 
     def input_patient_data(self, page, patient_row: pd.Series) -> bool:
         """患者データをWebフォームに入力"""
@@ -218,6 +220,7 @@ class BarrettCalculator:
         try:
             # データ読み込み
             df = self.load_patient_data()
+            output_path = self.build_output_path()
 
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=self.headless, slow_mo=500)  # slow_moで処理を少し遅くする
@@ -265,14 +268,12 @@ class BarrettCalculator:
                         error_count += 1
                         self.logger.error(f"患者処理エラー ({patient_name}): {e}")
 
+                    # 途中で処理が止まっても結果が残るよう1人ごとに保存
+                    self.save_patient_data(df, output_path)
+
                 browser.close()
 
-            # 結果保存
-            self.save_patient_data(df)
-
-            # 保存されたファイル名を取得
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            results_file_name = f"{self.file_path.stem}_results_{timestamp}{self.file_path.suffix}"
+            results_file_name = output_path.name
 
             # サマリー出力
             self.logger.info(f"処理完了 - 成功: {successful_count}, エラー: {error_count}")
